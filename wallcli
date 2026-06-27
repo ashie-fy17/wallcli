@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+
+import subprocess, questionary, os, argparse, random
+
+user = os.environ["USER"]
+
+config = f"/home/{user}/.config/wallcli/config.conf"
+
+with open(config, "r") as f:
+	wallpaper_path = f.read().strip()
+
+def makelist():
+	result = subprocess.run(
+		f"basename -a {wallpaper_path}*.mp4 {wallpaper_path}*.png {wallpaper_path}*.jpg {wallpaper_path}*.webp {wallpaper_path}*.jpeg",
+		shell=True,
+		capture_output=True,
+		text=True
+	)
+
+	wallpapers = result.stdout.splitlines()
+
+	wallpapers = [f for f in wallpapers if f and "*" not in f]
+
+	return wallpapers
+
+
+def main():
+	parser = argparse.ArgumentParser(
+		description="set a image/video wallpaper using mpvpaper :D"
+	)
+	
+	parser.add_argument(
+		"-s", "--stop",
+		action="store_true",
+		help="kill all mpvpaper instances"
+	)
+
+	parser.add_argument(
+		"-r", "--random",
+		action="store_true",
+		help="set a random wallpaper"
+	)
+
+	parser.add_argument(
+		"-p", "--path",
+		action="store_true",
+		help="set a custom wallpaper path (default: ~/Pictures/Wallpapers/)"
+	)
+	
+	args = parser.parse_args()
+
+	if args.stop:
+		subprocess.run(
+			"pkill mpvpaper",
+			shell=True,
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL
+		)
+		print("🛑 stopped all mpvpaper instances 🛑")
+		return
+	
+	if args.random:
+		wallpapers = makelist()
+
+		if not wallpapers:
+			print("no wallpapers found 😭")
+			return
+
+		selected = random.choice(wallpapers)
+
+		subprocess.run(
+			f'mpvpaper -o "loop --no-audio --panscan=1" "*" "{wallpaper_path}{selected}" &',
+	    	shell=True,
+	    	stderr=subprocess.DEVNULL,
+	    	stdout=subprocess.DEVNULL
+		)
+
+		print(f"✨ wallpaper set to {selected} ✨")
+		return
+	
+	if args.path:
+		new_path = questionary.text("what is your new desired path?").ask()		
+		
+		if not new_path.endswith("/"):
+			new_path += "/"
+		
+		with open(config, "w") as f:
+			f.write(new_path)
+
+		print(f"📁✨️ path set to {new_path}✨️📁✨️")
+
+		return
+
+	wallpapers = makelist()
+	
+	if not wallpapers:
+		print("no wallpapers found 😭")
+		return
+
+	selected = questionary.select(
+		"choose your wallpaper", 
+		choices=wallpapers
+		).ask()
+
+	subprocess.run(
+			f'mpvpaper -o "loop --no-audio --panscan=1" "*" "{wallpaper_path}{selected}" &',
+    		shell=True,
+    		stderr=subprocess.DEVNULL,
+    		stdout=subprocess.DEVNULL
+	)
+
+	print(f"✨ wallpaper set to {selected} ✨")
+
+if __name__ == "__main__":
+	main()
