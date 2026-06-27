@@ -87,7 +87,7 @@ def main():
 		with open(config, "w") as f:
 			f.write(new_path)
 
-		print(f"📁✨️ path set to {new_path}✨️📁")
+		print(f"📁✨️ path set to {new_path} ✨️📁")
 
 		return
 
